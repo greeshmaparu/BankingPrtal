@@ -16,9 +16,15 @@ namespace BankingPortal.API.Services
         }
         public Customers AddCustomer(Customers customer)
         {
+            if (string.IsNullOrWhiteSpace(customer.Email))
+            {
+                throw new ArgumentException("Email is required.");
+            }
+
             _context.Customers.Add(customer);
             _context.SaveChanges();
-           return customer;
+
+            return customer;
         }
         public bool UpdateCustomer(Customers customer)
         {

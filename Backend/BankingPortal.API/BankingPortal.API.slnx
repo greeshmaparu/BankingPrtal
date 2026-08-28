@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="BankingPortal.API.Tests/BankingPortal.API.Tests.csproj" Id="bb720cb7-c197-4bcd-ade8-7cb8e75fdaa0" />
   <Project Path="BankingPortal.API/BankingPortal.API.csproj" />
 </Solution>
