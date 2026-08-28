@@ -1,0 +1,166 @@
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+# ========================================
+# 1. Download latest artifact from CI
+# ========================================
+
+- task: DownloadPipelineArtifact@2
+  displayName: 'Download latest published artifact from CI'
+  inputs:
+    buildType: 'specific'
+    project: '$(System.TeamProject)'
+    definition: '4'
+    buildVersionToDownload: 'latest'
+    branchName: 'refs/heads/master'
+    artifactName: 'published'
+    targetPath: '$(Pipeline.Workspace)/published'
+
+
+# ========================================
+# 2. Verify downloaded artifacts
+# ========================================
+
+- script: |
+    echo "======================================"
+    echo "Downloaded artifact contents"
+    echo "======================================"
+
+    find "$(Pipeline.Workspace)/published" -type f
+
+    echo "======================================"
+    echo "Banking API files"
+    echo "======================================"
+
+    ls -la "$(Pipeline.Workspace)/published/banking-api"
+
+    echo "======================================"
+    echo "Angular Frontend files"
+    echo "======================================"
+
+    ls -la "$(Pipeline.Workspace)/published/banking-frontend/BankingPortal/browser"
+
+  displayName: 'Verify downloaded artifacts'
+
+
+# ========================================
+# 3. Deploy Banking API to EC2
+# ========================================
+
+- task: CopyFilesOverSSH@0
+  displayName: 'Deploy Banking API to AWS EC2'
+  inputs:
+    sshEndpoint: 'AzureAwsConnection'
+    sourceFolder: '$(Pipeline.Workspace)/published/banking-api'
+    contents: '**'
+    targetFolder: '/var/www/bankingportal'
+    cleanTargetFolder: false
+    overwrite: true
+
+
+# ========================================
+# 4. Deploy Angular Frontend to Nginx
+# ========================================
+
+- task: CopyFilesOverSSH@0
+  displayName: 'Deploy Angular Frontend to Nginx'
+  inputs:
+    sshEndpoint: 'AzureAwsConnection'
+    sourceFolder: '$(Pipeline.Workspace)/published/banking-frontend/BankingPortal/browser'
+    contents: '**'
+    targetFolder: '/usr/share/nginx/html'
+    cleanTargetFolder: true
+    overwrite: true
+
+
+# ========================================
+# 5. Restart API and Reload Nginx
+# ========================================
+
+- task: SSH@0
+  displayName: 'Restart API and Reload Nginx'
+  inputs:
+    sshEndpoint: 'AzureAwsConnection'
+    runOptions: 'inline'
+    inline: |
+
+      echo "======================================"
+      echo "Checking deployed API files"
+      echo "======================================"
+
+      ls -la /var/www/bankingportal
+
+
+      echo "======================================"
+      echo "Checking deployed Angular files"
+      echo "======================================"
+
+      ls -la /usr/share/nginx/html
+
+
+      echo "======================================"
+      echo "Reloading systemd"
+      echo "======================================"
+
+      sudo systemctl daemon-reload
+
+
+      echo "======================================"
+      echo "Restarting Banking Portal API"
+      echo "======================================"
+
+      sudo systemctl restart bankingportal
+
+
+      echo "======================================"
+      echo "Checking Banking API status"
+      echo "======================================"
+
+      if sudo systemctl is-active --quiet bankingportal; then
+        echo "Banking Portal API is running successfully"
+      else
+        echo "Banking Portal API failed to start"
+        sudo systemctl status bankingportal --no-pager
+        exit 1
+      fi
+
+
+      echo "======================================"
+      echo "Testing Nginx configuration"
+      echo "======================================"
+
+      if sudo nginx -t 2>&1; then
+        echo "Nginx configuration test successful"
+      else
+        echo "Nginx configuration test failed"
+        exit 1
+      fi
+
+
+      echo "======================================"
+      echo "Reloading Nginx"
+      echo "======================================"
+
+      sudo systemctl reload nginx
+
+
+      echo "======================================"
+      echo "Checking Nginx status"
+      echo "======================================"
+
+      if sudo systemctl is-active --quiet nginx; then
+        echo "Nginx is running successfully"
+      else
+        echo "Nginx failed to start"
+        sudo systemctl status nginx --no-pager
+        exit 1
+      fi
+
+
+      echo "======================================"
+      echo "Deployment completed successfully"
+      echo "======================================"

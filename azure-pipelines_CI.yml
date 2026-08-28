@@ -1,0 +1,99 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+# ========================================
+# 1. Install .NET SDK
+# ========================================
+
+- task: UseDotNet@2
+  displayName: 'Install .NET SDK'
+  inputs:
+    packageType: 'sdk'
+    version: '10.x'
+
+
+# ========================================
+# 2. Restore .NET Dependencies
+# ========================================
+
+- script: |
+    dotnet restore ./Backend/BankingPortal.API/BankingPortal.API/BankingPortal.API.csproj
+  displayName: 'Restore .NET dependencies'
+
+
+# ========================================
+# 3. Build .NET API
+# ========================================
+
+- script: |
+    dotnet build ./Backend/BankingPortal.API/BankingPortal.API/BankingPortal.API.csproj --configuration Release --no-restore
+  displayName: 'Build .NET API'
+
+
+# ========================================
+# 4. Install Node.js
+# ========================================
+
+- task: NodeTool@0
+  displayName: 'Install Node.js'
+  inputs:
+    versionSpec: '24.x'
+
+
+# ========================================
+# 5. Install Angular Dependencies
+# ========================================
+
+- script: |
+    cd ./Frontend/BankingPortal
+    npm ci
+  displayName: 'Install Angular dependencies'
+
+
+# ========================================
+# 6. Build Angular Application
+# ========================================
+
+- script: |
+    cd ./Frontend/BankingPortal
+    npm run build
+  displayName: 'Build Angular application'
+
+
+# ========================================
+# 7. Publish .NET API
+# ========================================
+
+- script: |
+    dotnet publish ./Backend/BankingPortal.API/BankingPortal.API/BankingPortal.API.csproj \
+      --configuration Release \
+      --output $(Build.ArtifactStagingDirectory)/published/banking-api
+  displayName: 'Publish .NET API'
+
+
+# ========================================
+# 8. Copy Angular Build to Published Folder
+# ========================================
+
+- script: |
+    mkdir -p $(Build.ArtifactStagingDirectory)/published/banking-frontend
+    cp -R $(Build.SourcesDirectory)/Frontend/BankingPortal/dist/* \
+      $(Build.ArtifactStagingDirectory)/published/banking-frontend/
+  displayName: 'Prepare Angular Artifact'
+
+
+# ========================================
+# 9. Publish Combined Artifact
+# ========================================
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Application Artifact'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/published'
+    ArtifactName: 'published'
+    publishLocation: 'Container'

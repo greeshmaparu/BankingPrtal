@@ -1,0 +1,39 @@
+<div class="ai-chat-widget">
+
+  <div class="ai-chat-header">
+    🤖 AI Assistant
+  </div>
+
+  <div class="ai-chat-body">
+
+    <div class="chat-input">
+
+      <input
+        type="text"
+        [(ngModel)]="question"
+        placeholder="Ask something..."
+        (keyup.enter)="askAI()"
+      />
+
+      <button
+        type="button"
+        (click)="askAI()"
+        [disabled]="loading">
+
+        {{ loading ? '...' : 'Send' }}
+
+      </button>
+
+    </div>
+
+    @if (answer) {
+
+      <div class="ai-answer">
+        {{ answer }}
+      </div>
+
+    }
+
+  </div>
+
+</div>
