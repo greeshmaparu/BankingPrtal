@@ -63,7 +63,35 @@ steps:
 
 
 # ========================================
-# 4. Deploy Angular Frontend to Nginx
+# 4. Run EF Core Database Migrations
+# ========================================
+
+- task: SSH@0
+  displayName: 'Run EF Core Database Migration'
+  inputs:
+    sshEndpoint: 'AzureAwsConnection'
+    runOptions: 'inline'
+    inline: |
+
+      echo "======================================"
+      echo "Running EF Core Database Migration"
+      echo "======================================"
+
+      cd /var/www/bankingportal
+
+      dotnet ef database update \
+        --connection "$(ProductionConnectionString)"
+
+      if [ $? -eq 0 ]; then
+        echo "Database migration completed successfully"
+      else
+        echo "Database migration failed"
+        exit 1
+      fi
+
+
+# ========================================
+# 5. Deploy Angular Frontend to Nginx
 # ========================================
 
 - task: CopyFilesOverSSH@0
@@ -78,7 +106,7 @@ steps:
 
 
 # ========================================
-# 5. Restart API and Reload Nginx
+# 6. Restart API and Reload Nginx
 # ========================================
 
 - task: SSH@0
