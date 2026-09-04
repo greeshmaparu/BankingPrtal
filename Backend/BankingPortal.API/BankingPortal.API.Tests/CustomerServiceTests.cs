@@ -24,7 +24,9 @@ namespace BankingPortal.API.Tests
                     Name = "John",
                     Email = "john@test.com",
                     Phone = "1234567890",
-                    Risk = "Low"
+                    Risk = "Low",
+                    DateOfBirth = new DateTime(1990, 1, 1),
+                    Address = "123 Main Street"
                 },
                 new Customers
                 {
@@ -32,7 +34,9 @@ namespace BankingPortal.API.Tests
                     Name = "Mary",
                     Email = "mary@test.com",
                     Phone = "0987654321",
-                    Risk = "Medium"
+                    Risk = "Medium",
+                    DateOfBirth = new DateTime(1990, 1, 1),
+                    Address = "1234 Main Street"
                 }
             );
 
